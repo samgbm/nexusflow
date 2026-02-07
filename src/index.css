@@ -1,0 +1,26 @@
+/* Tailwind CSS v4 Import 
+  This single line includes all base, component, and utility styles.
+*/
+@import "tailwindcss";
+
+/* Custom defaults 
+  We set the font family and render settings here.
+*/
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f9fafb; /* Tailwind neutral-50 */
+  color: #111827; /* Tailwind gray-900 */
+}

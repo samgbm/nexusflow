@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   Globe, 
   Settings, 
   Server,
-  Zap
+  Zap,
+  Box,
+  Cpu,
+  Truck,
+  X,
+  Search,
+  ChevronRight,
+  Play,
+  AlertTriangle,
 } from 'lucide-react';
 
 /**
@@ -17,18 +25,39 @@ import {
  * - Desktop: Split Layout (Sidebar on left, Graph on right).
  */
 
+/**
+ * ==========================================
+ * INCREMENT 2: THE UI SKELETON ("High Density")
+ * ==========================================
+ * Goal: Define the internal layout regions for the "Bloomberg Terminal" look.
+ * Structure:
+ * 1. Sidebar (Left): Split into "Log Stream" (Flex-Grow) and "Packet Inspector" (Fixed Bottom).
+ * 2. Main Stage (Center):
+ * - Top Bar: Metrics & Controls.
+ * - Graph Area: The infinite canvas for nodes.
+ * - Controls Overlay: Floating panel for user actions.
+ * 3. Inspector Panel (Right): Conditional slide-out for details.
+ */
+
 export default function App() {
+
+
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false); // Placeholder for future logic
+  const [showSettings, setShowSettings] = useState(false);
+
+
+
   return (
     // 1. GLOBAL CONTAINER
     // 'flex flex-col md:flex-row': Stack vertically on mobile, horizontally on desktop (md+)
     // 'h-screen': Fixed height (no window scroll)
     // 'bg-[#050507]': "Deep Space" background
-    <div className="flex flex-col md:flex-row h-screen w-full bg-[#050507] text-gray-300 font-sans overflow-hidden selection:bg-blue-500/30">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-[#050507] text-gray-300 font-sans overflow-hidden selection:bg-blue-500/30">
       
       {/* --- 2. LEFT SIDEBAR: PROTOCOL STREAM --- */}
       {/* Mobile: Full width, fixed height (250px) to show logs without hiding graph */}
       {/* Desktop: Fixed width (420px), full height */}
-      <div className="w-full h-[250px] md:w-[420px] md:h-full border-b md:border-b-0 md:border-r border-gray-800 flex flex-col bg-[#0a0a0c]">
+      <div className="w-full h-[300px] md:w-[420px] md:h-full border-b md:border-b-0 md:border-r border-gray-800 flex flex-col bg-[#0a0a0c]">
         
         {/* Sidebar Header */}
         <div className="h-10 md:h-14 border-b border-gray-800 flex items-center px-4 bg-[#0f0f12] shrink-0">
@@ -42,20 +71,31 @@ export default function App() {
         </div>
         
         {/* Empty State for Logs (Placeholder) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-40">
-           <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-gray-700 border-dashed rounded-lg mb-4 flex items-center justify-center">
-             <Server className="w-6 h-6 md:w-8 md:h-8 text-gray-600" />
-           </div>
-           <p className="text-xs font-mono text-gray-500">
-             [SYSTEM_INIT]<br/>
-             Waiting for NANDA Registry...
-           </p>
+        {/* LOG STREAM AREA (Flex Grow) */}
+        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-800 bg-[#0a0a0c] relative">
+          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 pointer-events-none">
+            <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-gray-700 border-dashed rounded-lg mb-4 flex items-center justify-center">
+              <Server className="w-6 h-6 md:w-8 md:h-8 text-gray-600" />
+            </div>
+            <p className="text-xs font-mono text-gray-500">
+              [SYSTEM_INIT]<br/>
+              Waiting for NANDA Registry...
+            </p>
+          </div>
+           
         </div>
 
         {/* Bottom Panel Placeholder (Packet Inspector) */}
         {/* Hidden on very small screens to save space, visible on desktop */}
-        <div className="hidden md:flex h-56 border-t border-gray-800 bg-[#08080a] items-center justify-center shrink-0">
-           <span className="text-[10px] uppercase font-bold text-gray-600">Packet Inspector Loading...</span>
+        {/* PACKET INSPECTOR (Fixed Height Bottom) */}
+        <div className="h-48 border-t border-gray-800 bg-[#08080a] flex flex-col shrink-0">
+           <div className="px-3 py-2 bg-[#0f0f12] border-b border-gray-800 text-[10px] font-bold text-gray-500 uppercase flex justify-between">
+             <span>Packet Inspector (MCP)</span>
+             <span className="text-gray-600 font-mono">IDLE</span>
+           </div>
+           <div className="flex-1 p-3 font-mono text-[10px] text-green-500/50 overflow-auto">
+             // Raw JSON payloads will appear here...
+           </div>
         </div>
       </div>
 
@@ -78,29 +118,64 @@ export default function App() {
           </div>
           
           {/* Placeholder Metrics */}
-          <div className="flex gap-4 md:gap-8 opacity-50">
-            <div className="text-right">
-              <div className="text-[9px] uppercase text-gray-500 font-bold tracking-wider">Trade Volume</div>
-              <div className="text-sm md:text-lg font-mono font-bold text-gray-600">--</div>
-            </div>
+          {/* Metrics Grid */}
+          <div className="flex gap-4 md:gap-8">
+             <MetricPlaceholder label="Volume" />
+             <MetricPlaceholder label="Active Nodes" />
+             <MetricPlaceholder label="Carbon" />
           </div>
           
-          <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-gray-800 rounded text-gray-500 transition-colors">
+          {/* Settings Toggle */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded transition-colors ${showSettings ? 'bg-gray-800 text-white' : 'hover:bg-gray-800 text-gray-500'}`}
+            >
                <Settings className="w-4 h-4" />
             </button>
+            {/* Settings Dropdown Placeholder */}
+            {showSettings && (
+              <div className="absolute top-10 right-0 w-64 bg-[#141418] border border-gray-700 rounded shadow-xl p-4 z-50">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-2">Configuration</h3>
+                <div className="text-xs text-gray-400">Settings panel ready for logic implementation.</div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Main Graph Area */}
-        <div className="flex-1 relative bg-[#050507] overflow-hidden flex items-center justify-center">
+        <div className="flex-1 relative overflow-hidden flex items-center justify-center">
           {/* Background Grid Effect using CSS Gradients */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
           
+          {/* FLOATING CONTROLS OVERLAY (Top Left) */}
+          <div className="absolute top-4 left-4 z-10 w-64 md:w-72 pointer-events-none">
+            {/* We use pointer-events-auto on the child so clicks pass through the empty areas */}
+            <div className="bg-[#0f0f12]/90 backdrop-blur border border-gray-800 p-4 rounded-lg shadow-2xl pointer-events-auto">
+              <div className="text-[10px] font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                <Zap className="w-3 h-3 text-yellow-500" />
+                Orchestration
+              </div>
+              
+              {/* Simulation Trigger Button Placeholder */}
+              <div className="h-10 bg-gray-800/50 border border-gray-700 border-dashed rounded flex items-center justify-center text-xs text-gray-600">
+                [Play Button Placeholder]
+              </div>
+              
+              {/* Resilience Toggle Placeholder */}
+              <div className="mt-3 pt-3 border-t border-gray-800 flex items-center justify-between">
+                 <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                   <AlertTriangle className="w-3 h-3" /> Resilience Test
+                 </span>
+                 <div className="w-8 h-4 bg-gray-800 rounded-full border border-gray-700"></div>
+              </div>
+            </div>
+          </div>
+
+
           {/* Welcome Message */}
           <div className="z-10 text-center px-4">
             <h2 className="text-xl md:text-2xl font-bold text-gray-200 mb-2">NexusFlow Environment Ready</h2>
-            <p className="text-xs md:text-sm text-gray-500 mb-6">Increment 1 Complete: Responsive Shell Initialized</p>
             <div className="flex gap-4 justify-center">
               <div className="px-4 py-2 bg-gray-800 rounded border border-gray-700 text-xs text-gray-400 flex items-center gap-2">
                 <Zap className="w-3 h-3 text-yellow-500" /> React 19 Loaded
@@ -110,9 +185,47 @@ export default function App() {
               </div>
             </div>
           </div>
+
+
         </div>
+
+
+
       </div>
 
+      {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}
+      {/* Hidden by default, toggles via state in future increments */}
+      {isInspectorOpen && (
+        <div className="absolute right-0 top-0 h-full w-[350px] bg-[#0a0a0c] border-l border-gray-800 shadow-2xl z-30 animate-in slide-in-from-right duration-300">
+           <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0f0f12]">
+             <span className="text-xs font-bold uppercase text-gray-400">Agent Dossier</span>
+             <button onClick={() => setIsInspectorOpen(false)}><X className="w-4 h-4 text-gray-500 hover:text-white" /></button>
+           </div>
+           <div className="p-4">
+             {/* Content Placeholder */}
+             hola mundo
+           </div>
+        </div>
+      )}
+
+      {/* Dev Tool: Temporary Toggle for Inspector */}
+      <button 
+        onClick={() => setIsInspectorOpen(!isInspectorOpen)}
+        className="fixed bottom-4 right-4 z-50 bg-gray-800 p-2 rounded-full text-xs text-gray-400 border border-gray-700 hover:text-white"
+      >
+        {isInspectorOpen ? <ChevronRight className="w-4 h-4"/> : <Search className="w-4 h-4"/>}
+      </button>
+
+    </div>
+  );
+}
+
+// Sub-component for clean Top Bar metrics
+function MetricPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="text-right">
+      <div className="text-[9px] uppercase text-gray-500 font-bold tracking-wider mb-0.5">{label}</div>
+      <div className="h-4 w-16 bg-gray-800/50 rounded animate-pulse"></div>
     </div>
   );
 }

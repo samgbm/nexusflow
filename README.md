@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# NexusFlow: The NANDA-Native Supply Chain OS 🌍📦
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **Winner - Hack-Nation 2026 (VC Big Bet Track)**
+> *One Click AI Challenge: Supply Chain Agents*
 
-Currently, two official plugins are available:
+*(Replace with screenshot of your dashboard)*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 The Moonshot
 
-## React Compiler
+Global supply chains (\$115T output) run on "antique" rails—emails, PDFs, and manual spreadsheets. **NexusFlow** upgrades this infrastructure to the "Internet of Agents."
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+It is an autonomous orchestration layer where AI agents discover partners, negotiate contracts, and execute logistics in real-time using the **NANDA Protocol** and **Model Context Protocol (MCP)**.
 
-## Expanding the ESLint configuration
+## ⚡ Key Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. NANDA Registry ("The Yellow Pages")
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+A semantic discovery layer where agents publish their `AgentFacts` (Identity, Capabilities, Location).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+* **Tech:** In-memory vector-like search based on UN/LOCODE and ISO capability tags.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 2. Autonomous Negotiation (MCP)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Agents communicate via structured JSON-RPC 2.0 packets to solicit bids and award contracts dynamically.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+* **Protocol:** `supply.procure`, `supply.offer`, `logistics.book`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### 3. Self-Healing Logistics
+
+The system detects node failures (e.g., Port Strikes) and autonomously reroutes trade flows to alternative suppliers.
+
+### 4. "God Mode" Visualization
+
+A React-based dynamic graph engine that visualizes the "Invisible Hand" of the market in real-time.
+
+## 🛠️ Tech Stack
+
+* **Core:** React 19, TypeScript
+
+* **Styling:** Tailwind CSS, Lucide React
+
+* **Architecture:** Component-based Architecture (Sidebar, MainStage, Inspector)
+
+* **State Management:** React Hooks + Custom Registry Class
+
+* **Protocol:** Model Context Protocol (MCP) Factory
+
+## 🏁 Quick Start
+
+1. **Clone the repo**
+
+   ```bash
+   git clone [https://github.com/samgbm/nexusflow.git](https://github.com/samgbm/nexusflow.git)
+   cd nexusflow

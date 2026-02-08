@@ -28,6 +28,11 @@ export default function App() {
   const [selectedNode, setSelectedNode] = useState<AgentNode | null>(null);
   // const [showSettings, setShowSettings] = useState<boolean>(false);
 
+
+  // INCREMENT 10: Orchestrator State
+  const [isSimulating, setIsSimulating] = useState(false);
+
+
   // FIX: Use ref to prevent Strict Mode double-invocation of boot sequence
   const hasBooted = useRef(false);
 
@@ -63,18 +68,44 @@ export default function App() {
     addLog('system', `NANDA Registry initialized. Registered ${registeredCount} agents via DID.`, 'success');
 
     // 2. Run Self-Test Query
-    setTimeout(() => {
-      addLog('test', 'Running Self-Test: Find "Supplier" in "TW"', 'query');
-      const results = globalRegistry.find({ role: 'supplier', jurisdiction: 'TW' });
+    // setTimeout(() => {
+    //   addLog('test', 'Running Self-Test: Find "Supplier" in "TW"', 'query');
+    //   const results = globalRegistry.find({ role: 'supplier', jurisdiction: 'TW' });
       
-      if (results.length > 0) {
-        addLog('test', `PASSED: Found ${results[0].identity.did} (${results[0].context.location?.name})`, 'success');
-      } else {
-        addLog('test', 'FAILED: No agents found matching criteria.', 'error');
-      }
-    }, 800);
+    //   if (results.length > 0) {
+    //     addLog('test', `PASSED: Found ${results[0].identity.did} (${results[0].context.location?.name})`, 'success');
+    //   } else {
+    //     addLog('test', 'FAILED: No agents found matching criteria.', 'error');
+    //   }
+    // }, 800);
 
   }, [addLog]);
+
+  // --- HELPERS ---
+  const updateNodeStatus = (id: string, status: AgentNode['status']) => {
+    setNodes(prev => prev.map(n => n.id === id ? { ...n, status } : n));
+  };
+
+  // --- ORCHESTRATOR: STEP 1 (INTENT) ---
+  const runSimulation = async () => {
+    setIsSimulating(true);
+
+    // 1. Reset Scene
+    setEdges([]);
+    setNodes(INITIAL_AGENTS.map(n => ({ ...n, status: 'idle' })));
+    addLog('system', 'Simulation Sequence Initiated...', 'info');
+    await new Promise(r => setTimeout(r, 500));
+
+    // 2. Buyer Intent
+    const intentPacket = MCP.createIntent('ECU-Control-Unit', 5000, '2026-03-01');
+    addLog('buyer-01', 'Broadcast Intent: REQUIRE [ECU-Control-Unit] QTY:5k', 'query', intentPacket);
+    updateNodeStatus('buyer-01', 'working');
+
+    // End Step 1 for now
+    await new Promise(r => setTimeout(r, 1000));
+    // We will auto-advance to Discovery in Increment 11
+    // setIsSimulating(false); // Keep it true for now as if it's processing
+  };
 
   // --- HANDLERS ---
   const handleTestRegistry = () => {
@@ -177,6 +208,10 @@ export default function App() {
         // or we can expose it via a prop ref, but for now let's just use it in the component.
         // Actually, let's update MainStage to accept it.
         onTestMCP={handleTestMCP}
+        // INCREMENT 10
+        onStartSimulation={runSimulation}
+        isSimulating={isSimulating}
+
       />
 
       {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}

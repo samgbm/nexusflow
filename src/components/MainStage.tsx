@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity, Share2, FileCode } from 'lucide-react';
+import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity, Share2, FileCode, Play, RefreshCw } from 'lucide-react';
 // import { globalRegistry } from '../services/Registry';
 import type { AgentNode, AgentRole, AgentEdge } from '../types';
 
@@ -14,6 +14,8 @@ interface MainStageProps {
   onSelectNode: (node: AgentNode) => void; // New Prop: Selection handler
   onTestConnection: () => void; // New prop for testing
   onTestMCP: () => void; // New prop for testing
+  onStartSimulation: () => void;
+  isSimulating: boolean;
   onCycleStatus: () => void; // New prop for testing
   selectedNodeId: string | null; // New Prop: Visual selection state
   isInspectorOpen: boolean;
@@ -30,6 +32,8 @@ export function MainStage({
   selectedNodeId,
   onCycleStatus,
   onTestMCP,
+  onStartSimulation, // New
+  isSimulating,
   isInspectorOpen
 }: MainStageProps) {
   const [showSettings, setShowSettings] = useState(false);
@@ -111,9 +115,34 @@ export function MainStage({
               <Zap className="w-3 h-3 text-yellow-500" />
               Orchestration
             </div>
-            <div className="h-10 bg-gray-800/50 border border-gray-700 border-dashed rounded flex items-center justify-center text-xs text-gray-600 cursor-not-allowed">
-              System Ready (Idle)
-            </div>
+
+            {/* INCREMENT 10: FUNCTIONAL TRIGGER BUTTON */}
+            <button 
+              onClick={onStartSimulation}
+              disabled={isSimulating}
+              className={`w-full flex items-center justify-center gap-2 p-3 rounded text-xs font-bold transition-all border ${
+                isSimulating 
+                ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-600 border-blue-500 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
+              }`}
+            >
+              {isSimulating ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin" /> 
+                  Negotiating...
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current" /> 
+                  Source 5k ECUs (Global)
+                </>
+              )}
+            </button>
+
+
+
+
+            
             <div className="mt-3 pt-3 border-t border-gray-800 flex items-center justify-between">
               <span className="text-[10px] text-gray-500 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" /> Resilience Test
@@ -245,6 +274,13 @@ export function MainStage({
   );
 }
 
+
+// Helpers & Styles (Same as previous)
+const DebugBtn = ({ onClick, children }: any) => (
+  <button onClick={onClick} className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 flex items-center gap-2 justify-center">
+    {children}
+  </button>
+);
 
 // --- Helpers ---
 

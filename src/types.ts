@@ -45,12 +45,21 @@ export interface AgentNode {
   y: number;
 }
 
+// INCREMENT 8: Edge Definition
+export interface AgentEdge {
+  id: string;
+  from: string; // Agent Node ID
+  to: string;   // Agent Node ID
+  type: 'query' | 'negotiate' | 'contract' | 'logistics' | 'reject';
+  label?: string;
+}
+
 export interface LogEntry {
   id: number;
   timestamp: string;
   agentId: string;
   text: string;
-  type: 'info' | 'success' | 'error' | 'warning' | 'query';
+  type: 'info' | 'success' | 'error' | 'warning' | 'query' | 'action';
   mcpPayload?: any;
 }
 

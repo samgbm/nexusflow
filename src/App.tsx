@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 
-import type { AgentNode, LogEntry, AgentRole } from './types';
+import type { AgentNode, LogEntry, AgentRole, AgentEdge } from './types';
 import { INITIAL_AGENTS } from './data';
 import { globalRegistry } from './services/Registry';
 import { GraphCanvas } from './components/GraphCanvas';
@@ -21,6 +21,7 @@ import { Inspector } from './components/Inspector';
 
 export default function App() {
   const [nodes, setNodes] = useState<AgentNode[]>(INITIAL_AGENTS);
+  const [edges, setEdges] = useState<AgentEdge[]>([]); // New State
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
   const [selectedNode, setSelectedNode] = useState<AgentNode | null>(null);
@@ -111,7 +112,27 @@ export default function App() {
     addLog('debug', 'Cycled all node statuses for visual verification.', 'warning');
   };
 
-
+  // NEW: Debug edge rendering
+  const handleTestConnection = () => {
+    // Connect Buyer -> Supplier A
+    const newEdge: AgentEdge = {
+      id: `edge-${Date.now()}`,
+      from: 'buyer-01',
+      to: 'supplier-a',
+      type: 'query',
+      label: 'RFQ-101'
+    };
+    
+    setEdges(prev => {
+      // Clear if exists (toggle effect)
+      if (prev.length > 0) {
+        addLog('debug', 'Cleared test edges.', 'info');
+        return [];
+      }
+      addLog('debug', 'Drawing test edge: Buyer -> Supplier A', 'action');
+      return [newEdge];
+    });
+  };
   
   return (
     // 1. GLOBAL CONTAINER
@@ -132,11 +153,13 @@ export default function App() {
       {/* 'min-h-0': Crucial for nested flex scrolling */}
       {/* 2. CENTER: Graph & Controls */}
       <MainStage 
-        nodes={nodes}
+        nodes={nodes} 
+        edges={edges}
         registryCount={globalRegistry.count()} 
         onTestRegistry={handleTestRegistry}
         onToggleInspector={handleToggleInspector}
         onSelectNode={handleSelectNode}
+        onTestConnection={handleTestConnection}
         onCycleStatus={handleCycleStatus} // Pass debug handler
         selectedNodeId={selectedNode?.id || null}
         isInspectorOpen={isInspectorOpen}

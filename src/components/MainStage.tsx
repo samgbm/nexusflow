@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity } from 'lucide-react';
-import { globalRegistry } from '../services/Registry';
-import type { AgentNode, AgentRole } from '../types';
+import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity, Share2 } from 'lucide-react';
+// import { globalRegistry } from '../services/Registry';
+import type { AgentNode, AgentRole, AgentEdge } from '../types';
 
 
 
 interface MainStageProps {
   nodes: AgentNode[]; // New Prop: Nodes to render
+  edges: AgentEdge[]; // NEW: Edges Prop
   registryCount: number;
   onTestRegistry: () => void;
   onToggleInspector: () => void;
   onSelectNode: (node: AgentNode) => void; // New Prop: Selection handler
+  onTestConnection: () => void; // New prop for testing
   onCycleStatus: () => void; // New prop for testing
   selectedNodeId: string | null; // New Prop: Visual selection state
   isInspectorOpen: boolean;
@@ -18,10 +20,12 @@ interface MainStageProps {
 
 export function MainStage({
   nodes,
+  edges,
   registryCount,
   onTestRegistry,
   onToggleInspector,
   onSelectNode,
+  onTestConnection,
   selectedNodeId,
   onCycleStatus,
   isInspectorOpen
@@ -58,20 +62,28 @@ export function MainStage({
           </button>
           {showSettings && (
             <div className="absolute top-10 right-0 w-64 bg-[#141418] border border-gray-700 rounded shadow-xl p-4 z-50">
-              <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-2">Debug Actions</h3>
-              <button
-                onClick={onTestRegistry}
-                className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 mb-2 flex items-center gap-2 justify-center"
-              >
-                <Search className="w-3 h-3" /> Test Registry
-              </button>
+              <div className="absolute top-10 right-0 w-64 bg-[#141418] border border-gray-700 rounded shadow-xl p-4 z-50">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-2">Debug Actions</h3>
+                <button
+                  onClick={onTestRegistry}
+                  className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 mb-2 flex items-center gap-2 justify-center"
+                >
+                  <Search className="w-3 h-3" /> Test Registry
+                </button>
 
-              <button 
+                <button
                   onClick={onCycleStatus}
                   className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 flex items-center gap-2 justify-center"
                 >
                   <Activity className="w-3 h-3 text-yellow-500" /> Cycle Visuals
-              </button>
+                </button>
+                <button
+                  onClick={onTestConnection}
+                  className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 flex items-center gap-2 justify-center"
+                >
+                  <Share2 className="w-3 h-3 text-blue-500" /> Test Edge
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -102,6 +114,74 @@ export function MainStage({
           </div>
         </div>
 
+
+        {/* --- INCREMENT 8: SVG EDGE LAYER --- */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+          <defs>
+            <marker id="arrow-query" markerWidth="10" markerHeight="10" refX="22" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="#3b82f6" />
+            </marker>
+            <marker id="arrow-contract" markerWidth="10" markerHeight="10" refX="22" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="#10b981" />
+            </marker>
+            <marker id="arrow-reject" markerWidth="10" markerHeight="10" refX="22" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L9,3 z" fill="#ef4444" />
+            </marker>
+          </defs>
+          {edges.map((edge) => {
+            const source = nodes.find(n => n.id === edge.from);
+            const target = nodes.find(n => n.id === edge.to);
+            if (!source || !target) return null;
+
+            // Center offsets: Node is 56px wide (w-14), center is 28px
+            const x1 = source.x + 28;
+            const y1 = source.y + 28;
+            const x2 = target.x + 28;
+            const y2 = target.y + 28;
+
+            const styles = getEdgeStyles(edge.type);
+
+            return (
+              <g key={edge.id}>
+                <path
+                  d={`M${x1},${y1} L${x2},${y2}`}
+                  stroke={styles.color}
+                  strokeWidth="2"
+                  fill="none"
+                  strokeDasharray={styles.dash}
+                  markerEnd={`url(#${styles.marker})`}
+                  className="animate-pulse" // Simple pulse for now, custom keyframes in future
+                />
+                {edge.label && (
+                  <g>
+                    <rect
+                      x={(x1 + x2) / 2 - 20}
+                      y={(y1 + y2) / 2 - 10}
+                      width="40"
+                      height="20"
+                      rx="4"
+                      fill="#050507"
+                      stroke={styles.color}
+                    />
+                    <text
+                      x={(x1 + x2) / 2}
+                      y={(y1 + y2) / 2 + 4}
+                      textAnchor="middle"
+                      fontSize="9"
+                      fill={styles.color}
+                      className="font-mono uppercase font-bold"
+                    >
+                      {edge.label}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+
+
+
         {/* GRAPH NODES (Increment 6) */}
         <div className="absolute inset-0 z-0">
           {nodes.map(node => {
@@ -111,21 +191,24 @@ export function MainStage({
                 key={node.id}
                 style={{ top: node.y, left: node.x }}
                 className={`absolute w-14 h-14 rounded-xl border-2 flex items-center justify-center transition-all duration-500 z-10 cursor-pointer group shadow-2xl hover:scale-110
-                ${base}
-                ${selectedNodeId === node.id ? 'ring-2 ring-white scale-110 shadow-blue-500/50' : ''}
+                  ${base}
+                  ${selectedNodeId === node.id ? 'ring-2 ring-white scale-110 shadow-blue-500/50' : ''}
               `}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectNode(node);
                 }}
               >
+                {node.status !== 'idle' && (
+                  <div className={`absolute -inset-2 rounded-xl opacity-30 animate-ping ${ping}`}></div>
+                )}
                 {/* Node Icon */}
-                <AgentIcon type={node.type} />
+                <AgentIcon type={node.type} className={border} />
 
                 {/* Node Label */}
                 <div className="absolute -bottom-8 w-40 text-center text-[10px] font-bold text-gray-500 group-hover:text-gray-300 transition-colors bg-black/80 rounded px-2 py-1 backdrop-blur-sm -translate-x-1/2 left-1/2 border border-white/10 pointer-events-none">
                   {node.label}
-                  <div className="text-[9px] text-gray-600 font-normal">{node.facts.context.jurisdiction}</div>
+                  <div className="text-[9px] text-gray-600 font-normal">{node.status.toUpperCase()}</div>
                 </div>
               </div>
             );
@@ -140,9 +223,6 @@ export function MainStage({
             <p className="text-sm text-gray-600 font-mono mt-2">{registryCount} Verified Agents</p>
           </div>
         )}
-
-
-
       </div>
 
       {/* Toggle Inspector Button */}
@@ -187,13 +267,24 @@ function getNodeVisuals(status: AgentNode['status']) {
   }
 }
 
-
-
-function AgentIcon({ type }: { type: string }) {
+function getEdgeStyles(type: AgentEdge['type']) {
   switch (type) {
-    case 'buyer': return <Box className="w-6 h-6 text-blue-400" />;
-    case 'supplier': return <Cpu className="w-6 h-6 text-purple-400" />;
-    case 'logistics': return <Truck className="w-6 h-6 text-orange-400" />;
-    default: return <Server className="w-6 h-6" />;
+    case 'query': return { color: '#3b82f6', dash: '5,5', marker: 'arrow-query' }; // Blue Dashed
+    case 'negotiate': return { color: '#f59e0b', dash: '2,2', marker: 'arrow-query' }; // Amber Tight Dash
+    case 'contract': return { color: '#10b981', dash: '0', marker: 'arrow-contract' }; // Green Solid
+    case 'logistics': return { color: '#f97316', dash: '10,5', marker: 'arrow-query' }; // Orange Long Dash
+    case 'reject': return { color: '#ef4444', dash: '2,2', marker: 'arrow-reject' }; // Red
+    default: return { color: '#6b7280', dash: '0', marker: 'arrow-query' };
+  }
+}
+
+
+function AgentIcon({ type, className }: { type: AgentRole, className?: string }) {
+  const props = { className: `w-6 h-6 ${className}` };
+  switch (type) {
+    case 'buyer': return <Box {...props} />;
+    case 'supplier': return <Cpu {...props} />;
+    case 'logistics': return <Truck {...props} />;
+    default: return <Server {...props} />;
   }
 }

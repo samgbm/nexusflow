@@ -1,4 +1,5 @@
 # NexusFlow: The NANDA-Native Supply Chain OS 🌍📦
+[![NexusFlow: The NANDA-Native Supply Chain OS](https://img.youtube.com/vi/Xx3tZh7Cq38/0.jpg)](https://www.youtube.com/watch?v=Xx3tZh7Cq38)
 
 > **Winner - Hack-Nation 2026 (VC Big Bet Track)**
 > *One Click AI Challenge: Supply Chain Agents*

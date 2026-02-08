@@ -88,12 +88,15 @@ export default function App() {
     setNodes(prev => prev.map(n => n.id === id ? { ...n, status } : n));
   };
 
-  // --- ORCHESTRATOR: STEP 1 (INTENT) ---
+  const updateEdgeType = (edgeId: string, type: AgentEdge['type'], label?: string) => {
+    setEdges(prev => prev.map(e => e.id === edgeId ? { ...e, type, label: label || e.label } : e));
+  };
+
+  // --- ORCHESTRATOR ---
   const runSimulation = async () => {
-    if (isSimulating) return; // Prevent double trigger
+    if (isSimulating) return;
     setIsSimulating(true);
 
-    // 1. Reset Scene
     // ==========================================
     // STEP 1: INITIALIZATION & INTENT
     // ==========================================
@@ -102,56 +105,155 @@ export default function App() {
     addLog('system', 'Simulation Sequence Initiated...', 'info');
     await wait(600);
 
-    // 2. Buyer Intent
     const intentPacket = MCP.createIntent('ECU-Control-Unit', 5000, '2026-03-01');
     addLog('buyer-01', 'Broadcast Intent: REQUIRE [ECU-Control-Unit] QTY:5k', 'query', intentPacket);
     updateNodeStatus('buyer-01', 'working');
-
-
     await wait(1200);
 
     // ==========================================
-    // STEP 2: DISCOVERY (REGISTRY LOOKUP)
+    // STEP 2: DISCOVERY
     // ==========================================
-    // End Step 1 for now
-    // We will auto-advance to Discovery in Increment 11
-    // setIsSimulating(false); // Keep it true for now as if it's processing
-    addLog('network', 'NANDA Discovery: Resolving "automotive_chips" + "supplier"...', 'action');
+    addLog('network', 'NANDA Discovery: Resolving "automotive_chips"...', 'action');
     await wait(1000);
-
-    // 2a. Query Registry
+    
     const candidates = globalRegistry.find({ role: 'supplier', capability: 'automotive_chips' });
     
-    addLog('network', `Registry returned ${candidates.length} matches.`, 'success', {
-      query: "capability:automotive_chips",
-      candidates: candidates.map(c => c.identity.did)
-    });
-
-    // 2b. Draw Edges to Candidates
-    const newEdges = candidates.map((candidate, index) => {
-      // Find the visual node ID that corresponds to the NANDA DID
+    // FIX: Explicitly cast to AgentEdge to resolve TypeScript mismatch in filter predicate
+    const queryEdges = candidates.map((candidate, index) => {
       const targetNode = INITIAL_AGENTS.find(n => n.facts.identity.did === candidate.identity.did);
       if (!targetNode) return null;
-
-      return {
-        id: `edge-query-${index}-${Date.now()}`,
+      
+      const edge: AgentEdge = {
+        id: `edge-${targetNode.id}`,
         from: 'buyer-01',
         to: targetNode.id,
-        type: 'query' as const,
+        type: 'query',
         label: 'RFQ'
       };
-    }).filter((e) => e !== null);
-
-    setEdges(newEdges);
-
-    // 2c. Update Candidate Status to "Negotiating" (Visual Feedback)
+      return edge;
+    }).filter((e): e is AgentEdge => e !== null);
+    
+    setEdges(queryEdges);
+    
     candidates.forEach(c => {
        const node = INITIAL_AGENTS.find(n => n.facts.identity.did === c.identity.did);
        if(node) updateNodeStatus(node.id, 'negotiating');
     });
+    
+    addLog('network', `Registry found ${candidates.length} suitable suppliers.`, 'success');
+    await wait(1500);
 
-    // End of Increment 11 - Pause here to let user see the discovery state
-    setIsSimulating(false); // Re-enable button for now (will automate in next increments)
+    // ==========================================
+    // STEP 3: DYNAMIC NEGOTIATION
+    // ==========================================
+    interface Proposal {
+      nodeId: string;
+      price: number;
+      leadTime: string;
+    }
+    const proposals: Proposal[] = [];
+
+    for (const candidate of candidates) {
+      const node = INITIAL_AGENTS.find(n => n.facts.identity.did === candidate.identity.did);
+      if (!node) continue;
+
+      addLog(node.id, `Analyzing RFQ from Tesla...`, 'action');
+      await wait(600); 
+
+      const basePrice = 450;
+      const priceModifier = node.id === 'supplier-a' ? 0 : 60; 
+      const randomVar = Math.floor(Math.random() * 20);
+      const finalPrice = basePrice + priceModifier + randomVar;
+      const leadTime = node.id === 'supplier-a' ? '14 days' : '21 days';
+
+      const offerPacket = MCP.createOffer(`req_${Date.now()}`, finalPrice, 'USD', leadTime);
+      addLog(node.id, `Offer Generated: $${finalPrice}/unit.`, 'success', offerPacket);
+      updateEdgeType(`edge-${node.id}`, 'negotiate', `OFFER $${finalPrice}`);
+      proposals.push({ nodeId: node.id, price: finalPrice, leadTime });
+      await wait(800);
+    }
+
+    if (proposals.length > 0) {
+      addLog('buyer-01', `Evaluating ${proposals.length} proposals...`, 'action');
+      await wait(1000);
+
+      proposals.sort((a, b) => a.price - b.price);
+      const winner = proposals[0];
+      const losers = proposals.slice(1);
+
+      addLog('buyer-01', `Offer Accepted: ${winner.nodeId.toUpperCase()} ($${winner.price}).`, 'success');
+      
+      // FIX: Batch update all nodes to prevent race conditions and ensure losers reset to idle
+      setNodes(prev => prev.map(n => {
+        if (n.id === winner.nodeId) return { ...n, status: 'success' };
+        if (n.id === 'buyer-01') return { ...n, status: 'success' };
+        if (losers.some(l => l.nodeId === n.id)) return { ...n, status: 'idle' };
+        return n;
+      }));
+
+      // Log decline for losers
+      losers.forEach(loser => {
+        addLog('buyer-01', `Declining offer from ${loser.nodeId}.`, 'info');
+      });
+
+      // Update edges: Set winner to contract, remove losers
+      setEdges(prev => prev
+        .map(e => e.id === `edge-${winner.nodeId}` ? { ...e, type: 'contract' as const, label: 'SIGNED' } : e)
+        .filter(e => !losers.some(l => `edge-${l.nodeId}` === e.id))
+      );
+      
+      await wait(1000);
+
+      // ==========================================
+      // STEP 4: LOGISTICS & SETTLEMENT
+      // ==========================================
+      addLog(winner.nodeId, 'Initiating Logistics Protocol...', 'action');
+      await wait(800);
+
+      const logisticsCandidates = globalRegistry.find({ role: 'logistics' });
+      
+      if (logisticsCandidates.length > 0) {
+         const logisticsPartner = INITIAL_AGENTS.find(n => n.facts.identity.did === logisticsCandidates[0].identity.did);
+         
+         if (logisticsPartner) {
+             const bookingPacket = MCP.createBooking(
+                winner.nodeId === 'supplier-a' ? 'TW KHH' : 'KR PUS',
+                'US SJC', 
+                500
+             );
+             
+             addLog(winner.nodeId, `Booking Freight: ${logisticsPartner.label}`, 'query', bookingPacket);
+             
+             // Draw Edge: Supplier -> Logistics
+             setEdges(prev => [
+                ...prev, 
+                {
+                    id: `edge-logistics-${Date.now()}`,
+                    from: winner.nodeId,
+                    to: logisticsPartner.id,
+                    type: 'logistics',
+                    label: 'FREIGHT'
+                }
+             ]);
+             
+             updateNodeStatus(logisticsPartner.id, 'working');
+             await wait(1500);
+             
+             addLog(logisticsPartner.id, 'Shipment Confirmed. Waybill generated.', 'success', { waybill: 'MAEU998877', vessel: 'Emma Maersk' });
+             updateNodeStatus(logisticsPartner.id, 'success');
+             
+             await wait(500);
+             addLog('system', 'Transaction Cycle Complete. Escrow released.', 'success');
+         }
+      } else {
+         addLog('system', 'CRITICAL: No Logistics Provider found in Registry.', 'error');
+      }
+
+    } else {
+      addLog('buyer-01', 'No valid proposals received. Aborting.', 'error');
+    }
+
+    setIsSimulating(false);
   };
 
   // --- HANDLERS ---

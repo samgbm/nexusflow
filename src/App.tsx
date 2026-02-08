@@ -18,6 +18,8 @@ import { MCP } from './lib/mcp';
  * ==========================================
  * Integrates the Registry, Graph Engine, and UI Panels.
  */
+// Async delay helper
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 export default function App() {
@@ -88,23 +90,68 @@ export default function App() {
 
   // --- ORCHESTRATOR: STEP 1 (INTENT) ---
   const runSimulation = async () => {
+    if (isSimulating) return; // Prevent double trigger
     setIsSimulating(true);
 
     // 1. Reset Scene
+    // ==========================================
+    // STEP 1: INITIALIZATION & INTENT
+    // ==========================================
     setEdges([]);
     setNodes(INITIAL_AGENTS.map(n => ({ ...n, status: 'idle' })));
     addLog('system', 'Simulation Sequence Initiated...', 'info');
-    await new Promise(r => setTimeout(r, 500));
+    await wait(600);
 
     // 2. Buyer Intent
     const intentPacket = MCP.createIntent('ECU-Control-Unit', 5000, '2026-03-01');
     addLog('buyer-01', 'Broadcast Intent: REQUIRE [ECU-Control-Unit] QTY:5k', 'query', intentPacket);
     updateNodeStatus('buyer-01', 'working');
 
+
+    await wait(1200);
+
+    // ==========================================
+    // STEP 2: DISCOVERY (REGISTRY LOOKUP)
+    // ==========================================
     // End Step 1 for now
-    await new Promise(r => setTimeout(r, 1000));
     // We will auto-advance to Discovery in Increment 11
     // setIsSimulating(false); // Keep it true for now as if it's processing
+    addLog('network', 'NANDA Discovery: Resolving "automotive_chips" + "supplier"...', 'action');
+    await wait(1000);
+
+    // 2a. Query Registry
+    const candidates = globalRegistry.find({ role: 'supplier', capability: 'automotive_chips' });
+    
+    addLog('network', `Registry returned ${candidates.length} matches.`, 'success', {
+      query: "capability:automotive_chips",
+      candidates: candidates.map(c => c.identity.did)
+    });
+
+    // 2b. Draw Edges to Candidates
+    const newEdges = candidates.map((candidate, index) => {
+      // Find the visual node ID that corresponds to the NANDA DID
+      const targetNode = INITIAL_AGENTS.find(n => n.facts.identity.did === candidate.identity.did);
+      if (!targetNode) return null;
+
+      return {
+        id: `edge-query-${index}-${Date.now()}`,
+        from: 'buyer-01',
+        to: targetNode.id,
+        type: 'query' as const,
+        label: 'RFQ'
+      };
+    }).filter((e) => e !== null);
+
+    setEdges(newEdges);
+
+    // 2c. Update Candidate Status to "Negotiating" (Visual Feedback)
+    candidates.forEach(c => {
+       const node = INITIAL_AGENTS.find(n => n.facts.identity.did === c.identity.did);
+       if(node) updateNodeStatus(node.id, 'negotiating');
+    });
+
+    // End of Increment 11 - Pause here to let user see the discovery state
+    setIsSimulating(false); // Re-enable button for now (will automate in next increments)
   };
 
   // --- HANDLERS ---
@@ -175,47 +222,32 @@ export default function App() {
   
 
 
-  return (
-    // 1. GLOBAL CONTAINER
-    // 'flex flex-col md:flex-row': Stack vertically on mobile, horizontally on desktop (md+)
-    // 'h-screen': Fixed height (no window scroll)
+  return (  
     // 'bg-[#050507]': "Deep Space" background
-    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-[#050507] text-gray-300 font-sans overflow-hidden selection:bg-blue-500/30">
-      
-      {/* --- 2. LEFT SIDEBAR: PROTOCOL STREAM --- */}
-      {/* Mobile: Full width, fixed height (250px) to show logs without hiding graph */}
-      {/* Desktop: Fixed width (420px), full height */}
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-[#050507] text-gray-300 font-sans overflow-hidden selection:bg-blue-500/30">      
+     
       {/* 1. LEFT: Logs & Protocol */}
       <Sidebar logs={logs} booting={!hasBooted.current} />
-
-
-      {/* --- 3. RIGHT AREA: MAIN STAGE --- */}
-      {/* 'flex-1': Take remaining space */}
-      {/* 'min-h-0': Crucial for nested flex scrolling */}
+   
       {/* 2. CENTER: Graph & Controls */}
       <MainStage 
-        nodes={nodes} 
+        nodes={nodes}
         edges={edges}
         registryCount={globalRegistry.count()} 
         onTestRegistry={handleTestRegistry}
         onToggleInspector={handleToggleInspector}
         onSelectNode={handleSelectNode}
+        onCycleStatus={handleCycleStatus}
         onTestConnection={handleTestConnection}
-        onCycleStatus={handleCycleStatus} // Pass debug handler
-        selectedNodeId={selectedNode?.id || null}
-        isInspectorOpen={isInspectorOpen}
-        // Passing the new handler to MainStage so we can add a button there if needed, 
-        // or we can expose it via a prop ref, but for now let's just use it in the component.
-        // Actually, let's update MainStage to accept it.
         onTestMCP={handleTestMCP}
-        // INCREMENT 10
+        
         onStartSimulation={runSimulation}
         isSimulating={isSimulating}
 
+        selectedNodeId={selectedNode?.id || null}
+        isInspectorOpen={isInspectorOpen}
       />
-
-      {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}
-      {/* Hidden by default, toggles via state in future increments */}
+   
       {/* 3. RIGHT: Inspector Overlay */}
       {isInspectorOpen && selectedNode && (
         <Inspector 
@@ -223,8 +255,6 @@ export default function App() {
           onClose={() => setIsInspectorOpen(false)} 
         />
       )}
-
-
     </div>
   );
 }

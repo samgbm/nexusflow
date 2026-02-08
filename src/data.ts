@@ -79,7 +79,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
       x: 800, y: 350,
       facts: {
         identity: { did: 'did:nanda:hyundai_auto_01', role: 'supplier' },
-        capabilities: ['automotive_components', 'battery_systems', 'ev_platforms'],
+        capabilities: ['automotive_components', 'battery_systems', 'ev_platforms', 'automotive_chips'],
         context: { jurisdiction: 'KR', location: LOCATIONS.BUSAN },
         endpoint: 'mcp://auto01.hyundai.com'
       }

@@ -3,7 +3,11 @@
 > **Winner - Hack-Nation 2026 (VC Big Bet Track)**
 > *One Click AI Challenge: Supply Chain Agents*
 
+# PROJECT DASHBOARD
 ![NEXUS FLOW dashboard](demo%20app%20image.png)
+
+# SEQUENCE DIAGRAM
+![NEXUS FLOW diagram](sequencediagram.png)
 
 ## 🚀 The Moonshot
 

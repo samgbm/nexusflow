@@ -96,6 +96,23 @@ export default function App() {
     addLog('ui', `User inspected agent: ${node.label}`, 'info');
   };
 
+
+  // NEW: Debugging tool to verify visual states
+  const handleCycleStatus = () => {
+    setNodes(prev => prev.map(n => {
+      let nextStatus: AgentNode['status'] = 'idle';
+      if (n.status === 'idle') nextStatus = 'working';
+      else if (n.status === 'working') nextStatus = 'negotiating';
+      else if (n.status === 'negotiating') nextStatus = 'success';
+      else if (n.status === 'success') nextStatus = 'error';
+      else nextStatus = 'idle';
+      return { ...n, status: nextStatus };
+    }));
+    addLog('debug', 'Cycled all node statuses for visual verification.', 'warning');
+  };
+
+
+  
   return (
     // 1. GLOBAL CONTAINER
     // 'flex flex-col md:flex-row': Stack vertically on mobile, horizontally on desktop (md+)
@@ -115,13 +132,14 @@ export default function App() {
       {/* 'min-h-0': Crucial for nested flex scrolling */}
       {/* 2. CENTER: Graph & Controls */}
       <MainStage 
+        nodes={nodes}
         registryCount={globalRegistry.count()} 
         onTestRegistry={handleTestRegistry}
         onToggleInspector={handleToggleInspector}
-        isInspectorOpen={isInspectorOpen}
-        nodes={nodes}
         onSelectNode={handleSelectNode}
-        selectedNodeId={selectedNode?.id ?? null}
+        onCycleStatus={handleCycleStatus} // Pass debug handler
+        selectedNodeId={selectedNode?.id || null}
+        isInspectorOpen={isInspectorOpen}
       />
 
       {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}

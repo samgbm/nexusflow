@@ -60,7 +60,7 @@ export interface LogEntry {
   agentId: string;
   text: string;
   type: 'info' | 'success' | 'error' | 'warning' | 'query' | 'action';
-  mcpPayload?: any;
+  mcpPayload?: MCPMessage; // Updated to use strict MCP type
 }
 
 export interface RegistryQuery {
@@ -68,3 +68,26 @@ export interface RegistryQuery {
   capability?: string;
   jurisdiction?: string;
 }
+
+// --- INCREMENT 9: MCP (Model Context Protocol) JSON-RPC 2.0 ---
+
+export interface MCPJsonRpc {
+  jsonrpc: "2.0";
+  id: string | number;
+}
+
+export interface MCPRequest extends MCPJsonRpc {
+  method: string;
+  params: Record<string, any>;
+}
+
+export interface MCPResponse extends MCPJsonRpc {
+  result?: any;
+  error?: {
+    code: number;
+    message: string;
+    data?: any;
+  };
+}
+
+export type MCPMessage = MCPRequest | MCPResponse;

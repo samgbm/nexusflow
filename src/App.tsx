@@ -9,6 +9,7 @@ import { GraphCanvas } from './components/GraphCanvas';
 import { Sidebar } from './components/Sidebar';
 import { MainStage } from './components/MainStage';
 import { Inspector } from './components/Inspector';
+import { MCP } from './lib/mcp';
 
 
 /**
@@ -31,13 +32,14 @@ export default function App() {
   const hasBooted = useRef(false);
 
   // Helper to add logs to the sidebar
-  const addLog = useCallback((agentId: string, text: string, type: LogEntry['type'] = 'info') => {
+  const addLog = useCallback((agentId: string, text: string, type: LogEntry['type'] = 'info', mcpPayload?: any) => {
     setLogs(prev => [{
       id: Date.now() + Math.random(),
       timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 2 }),
       agentId,
       text,
-      type
+      type,
+      mcpPayload // Now supported
     }, ...prev].slice(0, 50));
   }, []);
 
@@ -133,7 +135,15 @@ export default function App() {
       return [newEdge];
     });
   };
+
+  // NEW: Debug MCP Packet
+  const handleTestMCP = () => {
+    const packet = MCP.createIntent('ECU-Control-Unit', 5000, '2026-03-01');
+    addLog('buyer-01', 'Broadcast Intent: REQUIRE [ECU-Control-Unit] QTY:5k', 'query', packet);
+  };
   
+
+
   return (
     // 1. GLOBAL CONTAINER
     // 'flex flex-col md:flex-row': Stack vertically on mobile, horizontally on desktop (md+)
@@ -163,6 +173,10 @@ export default function App() {
         onCycleStatus={handleCycleStatus} // Pass debug handler
         selectedNodeId={selectedNode?.id || null}
         isInspectorOpen={isInspectorOpen}
+        // Passing the new handler to MainStage so we can add a button there if needed, 
+        // or we can expose it via a prop ref, but for now let's just use it in the component.
+        // Actually, let's update MainStage to accept it.
+        onTestMCP={handleTestMCP}
       />
 
       {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}

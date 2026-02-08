@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity, Share2 } from 'lucide-react';
+import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck, Activity, Share2, FileCode } from 'lucide-react';
 // import { globalRegistry } from '../services/Registry';
 import type { AgentNode, AgentRole, AgentEdge } from '../types';
 
@@ -13,6 +13,7 @@ interface MainStageProps {
   onToggleInspector: () => void;
   onSelectNode: (node: AgentNode) => void; // New Prop: Selection handler
   onTestConnection: () => void; // New prop for testing
+  onTestMCP: () => void; // New prop for testing
   onCycleStatus: () => void; // New prop for testing
   selectedNodeId: string | null; // New Prop: Visual selection state
   isInspectorOpen: boolean;
@@ -28,6 +29,7 @@ export function MainStage({
   onTestConnection,
   selectedNodeId,
   onCycleStatus,
+  onTestMCP,
   isInspectorOpen
 }: MainStageProps) {
   const [showSettings, setShowSettings] = useState(false);
@@ -82,6 +84,13 @@ export function MainStage({
                   className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 flex items-center gap-2 justify-center"
                 >
                   <Share2 className="w-3 h-3 text-blue-500" /> Test Edge
+                </button>
+                {/* NEW BUTTON */}
+                <button 
+                  onClick={onTestMCP}
+                  className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 flex items-center gap-2 justify-center"
+                >
+                  <FileCode className="w-3 h-3 text-green-500" /> Test MCP
                 </button>
               </div>
             </div>

@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Play,
   AlertTriangle,
+  Link as LinkIcon,
+  MapPin,
 } from 'lucide-react';
 
 /**
@@ -39,9 +41,98 @@ import {
  * 3. Inspector Panel (Right): Conditional slide-out for details.
  */
 
+
+/**
+ * ==========================================
+ * INCREMENT 3: NANDA DATA MODELS & IDENTITY
+ * ==========================================
+ * Goal: Define the "AgentFacts" schema and populate the simulation with 4 distinct actors.
+ * * NANDA Schema Implementation:
+ * - Identity: DID (Decentralized Identifier)
+ * - Role: The functional archetype (Buyer, Supplier, Logistics)
+ * - Capabilities: What the agent can do (Semantic Search tags)
+ * - Context: Geo-location (UN/LOCODE) and Jurisdiction
+ */
+
+// --- REAL-WORLD CONSTANTS ---
+const LOCATIONS = {
+  SHANGHAI: { code: 'CN SHA', name: 'Shanghai Port', lat: 31.23, lon: 121.47 },
+  ROTTERDAM: { code: 'NL RTM', name: 'Port of Rotterdam', lat: 51.92, lon: 4.47 },
+  HAMBURG: { code: 'DE HAM', name: 'Port of Hamburg', lat: 53.54, lon: 9.99 },
+  KAOHSIUNG: { code: 'TW KHH', name: 'Kaohsiung Port', lat: 22.62, lon: 120.27 },
+  BUSAN: { code: 'KR PUS', name: 'Busan Port', lat: 35.10, lon: 129.04 },
+  FREMONT: { code: 'US SJC', name: 'Fremont Factory', lat: 37.54, lon: -121.98 }
+};
+
+const HS_CODES = {
+  ECU: '8537.10.9170', // Electronic Control Units
+  STEEL: '7210.49.00', // Flat-rolled steel
+};
+
+
+// --- NANDA AGENT SEED DATA ---
+const INITIAL_AGENTS = [
+  {
+    id: 'buyer-01', type: 'buyer', label: 'Tesla Procurement', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:tesla_procure_x', role: 'buyer' },
+      capabilities: ['procurement', 'contract_signing', 'payment_swift'],
+      context: { jurisdiction: 'US', currency: 'USD', location: LOCATIONS.FREMONT },
+      endpoint: 'mcp://buyer.tesla.ai'
+    }
+  },
+  {
+    id: 'supplier-a', type: 'supplier', label: 'TSMC (Taiwan)', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:tsmc_fab_12', role: 'supplier' },
+      capabilities: ['semiconductors', 'automotive_chips', 'iso_26262'],
+      context: { jurisdiction: 'TW', location: LOCATIONS.KAOHSIUNG },
+      endpoint: 'mcp://fab12.tsmc.com'
+    }
+  },
+  {
+    id: 'supplier-b', type: 'supplier', label: 'Posco (Korea)', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:posco_busan', role: 'supplier' },
+      capabilities: ['steel_rolling', 'high_tensile'],
+      context: { jurisdiction: 'KR', location: LOCATIONS.BUSAN },
+      endpoint: 'mcp://api.posco.co.kr'
+    }
+  },
+  {
+    id: 'logistics-a', type: 'logistics', label: 'Maersk Global', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:maersk_line', role: 'logistics' },
+      capabilities: ['sea_freight', 'customs_brokerage'],
+      context: { jurisdiction: 'GLOBAL', fleet: 'Triple-E Class' },
+      endpoint: 'mcp://api.maersk.com/booking'
+    }
+  },
+  {
+    id: 'logistics-b', type: 'logistics', label: 'DHL Global Freight', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:dhl_global_freight', role: 'logistics' },
+      capabilities: ['global_freight', 'customs_clearance', 'delivery_tracking'],
+      context: { jurisdiction: 'DE', location: LOCATIONS.HAMBURG },
+      endpoint: 'mcp://logistics.dhl.com'
+    }
+  },
+  {
+    id: 'supplier-c', type: 'supplier', label: 'Hyundai Motor (Korea)', status: 'idle',
+    facts: {
+      identity: { did: 'did:nanda:hyundai_auto_01', role: 'supplier' },
+      capabilities: ['automotive_components', 'battery_systems', 'ev_platforms'],
+      context: { jurisdiction: 'KR', location: LOCATIONS.BUSAN },
+      endpoint: 'mcp://auto01.hyundai.com'
+    }
+  }
+];
+
+
+
 export default function App() {
-
-
+  const [nodes, setNodes] = useState(INITIAL_AGENTS);
+  const [selectedNode, setSelectedNode] = useState(INITIAL_AGENTS[0]); // Default to first for Dev Testing
   const [isInspectorOpen, setIsInspectorOpen] = useState(false); // Placeholder for future logic
   const [showSettings, setShowSettings] = useState(false);
 
@@ -173,38 +264,80 @@ export default function App() {
           </div>
 
 
-          {/* Welcome Message */}
-          <div className="z-10 text-center px-4">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-200 mb-2">NexusFlow Environment Ready</h2>
-            <div className="flex gap-4 justify-center">
-              <div className="px-4 py-2 bg-gray-800 rounded border border-gray-700 text-xs text-gray-400 flex items-center gap-2">
-                <Zap className="w-3 h-3 text-yellow-500" /> React 19 Loaded
-              </div>
-              <div className="px-4 py-2 bg-gray-800 rounded border border-gray-700 text-xs text-gray-400">
-                Mobile-First Ready
-              </div>
-            </div>
+          {/* Debug Visualization for Increment 3 */}
+          <div className="z-0 text-center pointer-events-none opacity-50">
+             <h2 className="text-4xl font-bold text-gray-700 tracking-tighter">DATA LAYER ACTIVE</h2>
+             <p className="text-sm text-gray-600 font-mono mt-2">{nodes.length} NANDA Agents Loaded</p>
           </div>
 
 
         </div>
-
-
-
       </div>
 
       {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}
       {/* Hidden by default, toggles via state in future increments */}
-      {isInspectorOpen && (
+      {isInspectorOpen && selectedNode && (
         <div className="absolute right-0 top-0 h-full w-[350px] bg-[#0a0a0c] border-l border-gray-800 shadow-2xl z-30 animate-in slide-in-from-right duration-300">
            <div className="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-[#0f0f12]">
              <span className="text-xs font-bold uppercase text-gray-400">Agent Dossier</span>
              <button onClick={() => setIsInspectorOpen(false)}><X className="w-4 h-4 text-gray-500 hover:text-white" /></button>
            </div>
-           <div className="p-4">
-             {/* Content Placeholder */}
-             hola mundo
+           
+           <div className="p-6 overflow-y-auto">
+             <div className="flex items-center gap-4 mb-6">
+               <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center border border-gray-700">
+                  <AgentIcon type={selectedNode.type} />
+               </div>
+               <div>
+                  <h2 className="text-lg font-bold text-gray-200">{selectedNode.label}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                     <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded border border-blue-800 font-mono">
+                       {selectedNode.facts.identity.role.toUpperCase()}
+                     </span>
+                  </div>
+               </div>
+             </div>
+
+             <div className="space-y-6">
+               <div>
+                 <Label>NANDA Identity (DID)</Label>
+                 <div className="text-xs text-gray-300 font-mono break-all">{selectedNode.facts.identity.did}</div>
+               </div>
+               
+               <div>
+                 <Label>Jurisdiction & Location</Label>
+                 <div className="flex items-center gap-2 text-xs text-gray-300">
+                   <MapPin className="w-3 h-3 text-gray-500" />
+                   {selectedNode.facts.context.location?.name || selectedNode.facts.context.jurisdiction}
+                 </div>
+               </div>
+
+               <div>
+                 <Label>Capabilities</Label>
+                 <div className="flex flex-wrap gap-2">
+                   {selectedNode.facts.capabilities.map(cap => (
+                     <span key={cap} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-1 rounded border border-gray-700">
+                       {cap}
+                     </span>
+                   ))}
+                 </div>
+               </div>
+
+               <div>
+                 <Label>MCP Endpoint</Label>
+                 <div className="flex items-center gap-2 text-xs text-gray-500 font-mono bg-black/40 p-2 rounded border border-gray-800">
+                   <LinkIcon className="w-3 h-3" />
+                   {selectedNode.facts.endpoint}
+                 </div>
+               </div>
+             </div>
            </div>
+
+
+
+
+
+
         </div>
       )}
 
@@ -228,4 +361,17 @@ function MetricPlaceholder({ label }: { label: string }) {
       <div className="h-4 w-16 bg-gray-800/50 rounded animate-pulse"></div>
     </div>
   );
+}
+
+function Label({ children }) {
+  return <div className="text-[10px] uppercase text-gray-500 font-bold mb-2 flex items-center gap-1">{children}</div>;
+}
+
+function AgentIcon({ type }) {
+  switch(type) {
+    case 'buyer': return <Box className="w-6 h-6 text-blue-400" />;
+    case 'supplier': return <Cpu className="w-6 h-6 text-purple-400" />;
+    case 'logistics': return <Truck className="w-6 h-6 text-orange-400" />;
+    default: return <Server className="w-6 h-6" />;
+  }
 }

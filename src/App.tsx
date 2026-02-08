@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Activity, 
   Globe, 
@@ -54,8 +54,72 @@ import {
  * - Context: Geo-location (UN/LOCODE) and Jurisdiction
  */
 
+/**
+ * ==========================================
+ * INCREMENT 4: AGENT REGISTRY & TYPESCRIPT
+ * ==========================================
+ * Goal: Implement the "DNS" for Agents using strict TypeScript definitions.
+ * Features:
+ * 1. Interfaces: Formal NANDA Schema definitions.
+ * 2. AgentRegistry: Class for service discovery.
+ * 3. Boot Sequence: Auto-register agents on startup.
+ */
+
+// --- 1. NANDA TYPE DEFINITIONS ---
+
+type AgentRole = 'buyer' | 'supplier' | 'logistics';
+
+interface GeoLocation {
+  code: string; // UN/LOCODE
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+interface AgentIdentity {
+  did: string; // Decentralized Identifier
+  role: AgentRole;
+}
+
+interface AgentContext {
+  jurisdiction: string;
+  currency?: string;
+  location?: GeoLocation;
+  fleet?: string;
+}
+
+interface AgentFacts {
+  identity: AgentIdentity;
+  capabilities: string[];
+  context: AgentContext;
+  endpoint: string;
+}
+
+interface AgentNode {
+  id: string;
+  type: AgentRole;
+  label: string;
+  status: 'idle' | 'working' | 'negotiating' | 'success' | 'error';
+  facts: AgentFacts;
+}
+
+interface LogEntry {
+  id: number;
+  timestamp: string;
+  agentId: string;
+  text: string;
+  type: 'info' | 'success' | 'error' | 'warning' | 'query';
+  mcpPayload?: any;
+}
+
+interface RegistryQuery {
+  role?: AgentRole;
+  capability?: string;
+  jurisdiction?: string;
+}
+
 // --- REAL-WORLD CONSTANTS ---
-const LOCATIONS = {
+const LOCATIONS: Record<string, GeoLocation> = {
   SHANGHAI: { code: 'CN SHA', name: 'Shanghai Port', lat: 31.23, lon: 121.47 },
   ROTTERDAM: { code: 'NL RTM', name: 'Port of Rotterdam', lat: 51.92, lon: 4.47 },
   HAMBURG: { code: 'DE HAM', name: 'Port of Hamburg', lat: 53.54, lon: 9.99 },
@@ -64,6 +128,49 @@ const LOCATIONS = {
   FREMONT: { code: 'US SJC', name: 'Fremont Factory', lat: 37.54, lon: -121.98 }
 };
 
+
+
+// --- 3. THE REGISTRY CLASS (Logic Layer) ---
+
+class AgentRegistry {
+  private agents: AgentFacts[] = [];
+
+  register(agentFacts: AgentFacts): boolean {
+    // Prevent duplicate DIDs
+    if (this.agents.find(a => a.identity.did === agentFacts.identity.did)) {
+      return false;
+    }
+    this.agents.push(agentFacts);
+    return true;
+  }
+
+  /**
+   * Semantic Discovery: Finds agents matching partial criteria.
+   * "Find a supplier in Taiwan that can handle semiconductors"
+   */
+  find(query: RegistryQuery): AgentFacts[] {
+    return this.agents.filter(agent => {
+      let match = true;
+      if (query.role && agent.identity.role !== query.role) match = false;
+      if (query.jurisdiction && agent.context.jurisdiction !== query.jurisdiction) match = false;
+      if (query.capability && !agent.capabilities.includes(query.capability)) match = false;
+      return match;
+    });
+  }
+
+  count(): number {
+    return this.agents.length;
+  }
+
+  clear(): void {
+    this.agents = [];
+  }
+}
+
+// Global Singleton for the Registry
+const globalRegistry = new AgentRegistry();
+
+
 const HS_CODES = {
   ECU: '8537.10.9170', // Electronic Control Units
   STEEL: '7210.49.00', // Flat-rolled steel
@@ -71,7 +178,7 @@ const HS_CODES = {
 
 
 // --- NANDA AGENT SEED DATA ---
-const INITIAL_AGENTS = [
+const INITIAL_AGENTS: AgentNode[] = [
   {
     id: 'buyer-01', type: 'buyer', label: 'Tesla Procurement', status: 'idle',
     facts: {
@@ -131,10 +238,58 @@ const INITIAL_AGENTS = [
 
 
 export default function App() {
-  const [nodes, setNodes] = useState(INITIAL_AGENTS);
-  const [selectedNode, setSelectedNode] = useState(INITIAL_AGENTS[0]); // Default to first for Dev Testing
-  const [isInspectorOpen, setIsInspectorOpen] = useState(false); // Placeholder for future logic
-  const [showSettings, setShowSettings] = useState(false);
+  const [nodes, setNodes] = useState<AgentNode[]>(INITIAL_AGENTS);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
+  const [selectedNode, setSelectedNode] = useState<AgentNode | null>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+
+  // FIX: Use ref to prevent Strict Mode double-invocation of boot sequence
+  const hasBooted = useRef(false);
+
+  // Helper to add logs to the sidebar
+  const addLog = useCallback((agentId: string, text: string, type: LogEntry['type'] = 'info') => {
+    setLogs(prev => [{
+      id: Date.now() + Math.random(),
+      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false, fractionalSecondDigits: 2 }),
+      agentId,
+      text,
+      type
+    }, ...prev].slice(0, 50));
+  }, []);
+
+  // --- BOOT SEQUENCE (Increment 4) ---
+  useEffect(() => {
+    if (hasBooted.current) return;
+    hasBooted.current = true;
+
+    // 1. Register Agents (Idempotent)
+    let registeredCount = 0;
+    
+    // Clear registry first to ensure clean state on HMR
+    globalRegistry.clear();
+    
+    INITIAL_AGENTS.forEach(node => {
+      if (globalRegistry.register(node.facts)) {
+        registeredCount++;
+      }
+    });
+    
+    addLog('system', `NANDA Registry initialized. Registered ${registeredCount} agents via DID.`, 'success');
+
+    // 2. Run Self-Test Query
+    setTimeout(() => {
+      addLog('test', 'Running Self-Test: Find "Supplier" in "TW"', 'query');
+      const results = globalRegistry.find({ role: 'supplier', jurisdiction: 'TW' });
+      
+      if (results.length > 0) {
+        addLog('test', `PASSED: Found ${results[0].identity.did} (${results[0].context.location?.name})`, 'success');
+      } else {
+        addLog('test', 'FAILED: No agents found matching criteria.', 'error');
+      }
+    }, 800);
+
+  }, [addLog]);
 
 
 
@@ -163,17 +318,37 @@ export default function App() {
         
         {/* Empty State for Logs (Placeholder) */}
         {/* LOG STREAM AREA (Flex Grow) */}
-        <div className="flex-1 overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-800 bg-[#0a0a0c] relative">
-          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 pointer-events-none">
-            <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-gray-700 border-dashed rounded-lg mb-4 flex items-center justify-center">
-              <Server className="w-6 h-6 md:w-8 md:h-8 text-gray-600" />
+        {/* LOG STREAM */}
+        <div className="flex-1 overflow-y-auto p-2 bg-[#0a0a0c] relative scrollbar-thin scrollbar-thumb-gray-800">
+          {logs.length === 0 && !hasBooted.current && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 pointer-events-none">
+              <Server className="w-12 h-12 text-gray-500 mb-2" />
+              <span className="text-[10px] font-mono text-gray-500">AWAITING NANDA SIGNALS</span>
             </div>
-            <p className="text-xs font-mono text-gray-500">
-              [SYSTEM_INIT]<br/>
-              Waiting for NANDA Registry...
-            </p>
+          )}
+          
+          <div className="space-y-2">
+            {logs.map(log => (
+              <div key={log.id} className="p-2 rounded hover:bg-white/5 border border-transparent hover:border-gray-800 transition-colors cursor-pointer group">
+                <div className="flex justify-between items-start mb-1">
+                  <span className={`font-mono text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                     log.agentId === 'system' || log.agentId === 'test' ? 'bg-purple-900/20 border-purple-800 text-purple-400' : 'bg-blue-900/20 border-blue-800 text-blue-400'
+                  }`}>
+                    {log.agentId}
+                  </span>
+                  <span className="font-mono text-[9px] text-gray-600">{log.timestamp}</span>
+                </div>
+                <div className={`text-xs font-mono leading-relaxed ${
+                  log.type === 'error' ? 'text-red-400' : 
+                  log.type === 'success' ? 'text-emerald-400' : 
+                  log.type === 'query' ? 'text-yellow-400' : 
+                  'text-gray-300'
+                }`}>
+                  {log.text}
+                </div>
+              </div>
+            ))}
           </div>
-           
         </div>
 
         {/* Bottom Panel Placeholder (Packet Inspector) */}
@@ -186,6 +361,8 @@ export default function App() {
            </div>
            <div className="flex-1 p-3 font-mono text-[10px] text-green-500/50 overflow-auto">
              // Raw JSON payloads will appear here...
+             {/* Future increments will populate this */}
+             <span className="opacity-50">System Idle. No active packets.</span>
            </div>
         </div>
       </div>
@@ -227,8 +404,19 @@ export default function App() {
             {/* Settings Dropdown Placeholder */}
             {showSettings && (
               <div className="absolute top-10 right-0 w-64 bg-[#141418] border border-gray-700 rounded shadow-xl p-4 z-50">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-2">Configuration</h3>
-                <div className="text-xs text-gray-400">Settings panel ready for logic implementation.</div>
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-2">Debug Actions</h3>
+                <button 
+                  onClick={() => {
+                    addLog('test', 'Manual Registry Check...', 'query');
+                    setTimeout(() => {
+                       const count = globalRegistry.count();
+                       addLog('test', `Registry Status: ${count} agents online.`, 'success');
+                    }, 500);
+                  }}
+                  className="w-full text-xs bg-gray-800 hover:bg-gray-700 text-white p-2 rounded border border-gray-600 mb-2 flex items-center gap-2 justify-center"
+                >
+                  <Search className="w-3 h-3" /> Test Registry
+                </button>
               </div>
             )}
           </div>
@@ -266,8 +454,8 @@ export default function App() {
 
           {/* Debug Visualization for Increment 3 */}
           <div className="z-0 text-center pointer-events-none opacity-50">
-             <h2 className="text-4xl font-bold text-gray-700 tracking-tighter">DATA LAYER ACTIVE</h2>
-             <p className="text-sm text-gray-600 font-mono mt-2">{nodes.length} NANDA Agents Loaded</p>
+             <h2 className="text-4xl font-bold text-gray-700 tracking-tighter">REGISTRY ONLINE</h2>
+             <p className="text-sm text-gray-600 font-mono mt-2">{globalRegistry.count()} Verified Agents</p>
           </div>
 
 
@@ -363,11 +551,11 @@ function MetricPlaceholder({ label }: { label: string }) {
   );
 }
 
-function Label({ children }) {
+function Label({ children }: { children: React.ReactNode }) {
   return <div className="text-[10px] uppercase text-gray-500 font-bold mb-2 flex items-center gap-1">{children}</div>;
 }
 
-function AgentIcon({ type }) {
+function AgentIcon({ type }: { type: string }) {
   switch(type) {
     case 'buyer': return <Box className="w-6 h-6 text-blue-400" />;
     case 'supplier': return <Cpu className="w-6 h-6 text-purple-400" />;

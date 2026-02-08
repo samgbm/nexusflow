@@ -90,6 +90,12 @@ export default function App() {
     }
   };
 
+  const handleSelectNode = (node: AgentNode) => {
+    setSelectedNode(node);
+    setIsInspectorOpen(true);
+    addLog('ui', `User inspected agent: ${node.label}`, 'info');
+  };
+
   return (
     // 1. GLOBAL CONTAINER
     // 'flex flex-col md:flex-row': Stack vertically on mobile, horizontally on desktop (md+)
@@ -113,6 +119,9 @@ export default function App() {
         onTestRegistry={handleTestRegistry}
         onToggleInspector={handleToggleInspector}
         isInspectorOpen={isInspectorOpen}
+        nodes={nodes}
+        onSelectNode={handleSelectNode}
+        selectedNodeId={selectedNode?.id ?? null}
       />
 
       {/* --- RIGHT REGION: INSPECTOR PANEL (Slide-Out) --- */}

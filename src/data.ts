@@ -19,11 +19,14 @@ const LOCATIONS: Record<string, GeoLocation> = {
   
 
   
+// Added X/Y Coordinates for Graph Visualization
 
 // --- NANDA AGENT SEED DATA ---
 export const INITIAL_AGENTS: AgentNode[] = [
     {
       id: 'buyer-01', type: 'buyer', label: 'Tesla Procurement', status: 'idle',
+      x: 400, y: 80,
+
       facts: {
         identity: { did: 'did:nanda:tesla_procure_x', role: 'buyer' },
         capabilities: ['procurement', 'contract_signing', 'payment_swift'],
@@ -33,6 +36,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
     },
     {
       id: 'supplier-a', type: 'supplier', label: 'TSMC (Taiwan)', status: 'idle',
+      x: 200, y: 350,
       facts: {
         identity: { did: 'did:nanda:tsmc_fab_12', role: 'supplier' },
         capabilities: ['semiconductors', 'automotive_chips', 'iso_26262'],
@@ -42,6 +46,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
     },
     {
       id: 'supplier-b', type: 'supplier', label: 'Posco (Korea)', status: 'idle',
+      x: 600, y: 350,
       facts: {
         identity: { did: 'did:nanda:posco_busan', role: 'supplier' },
         capabilities: ['steel_rolling', 'high_tensile'],
@@ -51,6 +56,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
     },
     {
       id: 'logistics-a', type: 'logistics', label: 'Maersk Global', status: 'idle',
+      x: 400, y: 550,
       facts: {
         identity: { did: 'did:nanda:maersk_line', role: 'logistics' },
         capabilities: ['sea_freight', 'customs_brokerage'],
@@ -60,6 +66,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
     },
     {
       id: 'logistics-b', type: 'logistics', label: 'DHL Global Freight', status: 'idle',
+      x: 600, y: 550,
       facts: {
         identity: { did: 'did:nanda:dhl_global_freight', role: 'logistics' },
         capabilities: ['global_freight', 'customs_clearance', 'delivery_tracking'],
@@ -69,6 +76,7 @@ export const INITIAL_AGENTS: AgentNode[] = [
     },
     {
       id: 'supplier-c', type: 'supplier', label: 'Hyundai Motor (Korea)', status: 'idle',
+      x: 800, y: 350,
       facts: {
         identity: { did: 'did:nanda:hyundai_auto_01', role: 'supplier' },
         capabilities: ['automotive_components', 'battery_systems', 'ev_platforms'],

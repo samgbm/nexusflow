@@ -1,15 +1,29 @@
 import React, { useState } from 'react';
 import { Globe, Settings, Search, Zap, AlertTriangle, Server, Cpu, Box, Truck } from 'lucide-react';
 import { globalRegistry } from '../services/Registry';
+import type { AgentNode, AgentRole } from '../types';
+
+
 
 interface MainStageProps {
+  nodes: AgentNode[]; // New Prop: Nodes to render
   registryCount: number;
   onTestRegistry: () => void;
   onToggleInspector: () => void;
+  onSelectNode: (node: AgentNode) => void; // New Prop: Selection handler
+  selectedNodeId: string | null; // New Prop: Visual selection state
   isInspectorOpen: boolean;
 }
 
-export function MainStage({ registryCount, onTestRegistry, onToggleInspector, isInspectorOpen }: MainStageProps) {
+export function MainStage({ 
+  nodes, 
+  registryCount, 
+  onTestRegistry, 
+  onToggleInspector, 
+  onSelectNode,
+  selectedNodeId,
+  isInspectorOpen 
+}: MainStageProps) {
   const [showSettings, setShowSettings] = useState(false);
 
   return (
@@ -58,6 +72,8 @@ export function MainStage({ registryCount, onTestRegistry, onToggleInspector, is
       <div className="flex-1 relative overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
 
+
+        {/* CONTROLS OVERLAY */} 
         <div className="absolute top-4 left-4 z-10 w-64 md:w-72 pointer-events-none">
           <div className="bg-[#0f0f12]/90 backdrop-blur border border-gray-800 p-4 rounded-lg shadow-2xl pointer-events-auto">
             <div className="text-[10px] font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
@@ -76,10 +92,51 @@ export function MainStage({ registryCount, onTestRegistry, onToggleInspector, is
           </div>
         </div>
         
-        <div className="z-0 text-center pointer-events-none opacity-50">
-           <h2 className="text-4xl font-bold text-gray-700 tracking-tighter">REGISTRY ONLINE</h2>
-           <p className="text-sm text-gray-600 font-mono mt-2">{registryCount} Verified Agents</p>
+        {/* GRAPH NODES (Increment 6) */}
+        <div className="absolute inset-0 z-0">
+           {nodes.map(node => (
+             <div 
+               key={node.id}
+               style={{ top: node.y, left: node.x }}
+               className={`absolute w-14 h-14 rounded-xl border-2 flex items-center justify-center transition-all duration-300 z-10 cursor-pointer group shadow-2xl hover:scale-110
+                 ${getNodeColor(node.status)}
+                 ${selectedNodeId === node.id ? 'ring-2 ring-white scale-110 shadow-blue-500/50' : ''}
+               `}
+               onClick={(e) => {
+                 e.stopPropagation();
+                 onSelectNode(node);
+               }}
+             >
+                {/* Node Icon */}
+                <AgentIcon type={node.type} />
+                
+                {/* Node Label */}
+                <div className="absolute -bottom-8 w-40 text-center text-[10px] font-bold text-gray-500 group-hover:text-gray-300 transition-colors bg-black/80 rounded px-2 py-1 backdrop-blur-sm -translate-x-1/2 left-1/2 border border-white/10 pointer-events-none">
+                  {node.label}
+                  <div className="text-[9px] text-gray-600 font-normal">{node.facts.context.jurisdiction}</div>
+                </div>
+                
+                {/* Status Ping (Only when active) */}
+                {node.status !== 'idle' && (
+                  <div className={`absolute -inset-2 rounded-xl opacity-30 animate-ping ${
+                    node.status === 'error' ? 'bg-red-500' : 'bg-blue-400'
+                  }`}></div>
+                )}
+             </div>
+           ))}
         </div>
+
+
+        {/* Empty State / Registry Counter */}
+        {nodes.length === 0 && (
+          <div className="z-0 text-center pointer-events-none opacity-50">
+             <h2 className="text-4xl font-bold text-gray-700 tracking-tighter">REGISTRY ONLINE</h2>
+             <p className="text-sm text-gray-600 font-mono mt-2">{registryCount} Verified Agents</p>
+          </div>
+        )}
+
+
+
       </div>
 
       {/* Toggle Inspector Button */}
@@ -93,6 +150,10 @@ export function MainStage({ registryCount, onTestRegistry, onToggleInspector, is
   );
 }
 
+
+// --- Helpers ---
+
+
 function MetricPlaceholder({ label }: { label: string }) {
   return (
     <div className="text-right">
@@ -102,12 +163,18 @@ function MetricPlaceholder({ label }: { label: string }) {
   );
 }
 
-
-  
-function Label({ children }: { children: React.ReactNode }) {
-    return <div className="text-[10px] uppercase text-gray-500 font-bold mb-2 flex items-center gap-1">{children}</div>;
+function getNodeColor(status: AgentNode['status']) {
+  switch(status) {
+    case 'idle': return 'bg-[#1a1a20] border-gray-600 text-gray-400';
+    case 'working': return 'bg-blue-950 border-blue-400 text-blue-200 shadow-[0_0_15px_rgba(59,130,246,0.5)]';
+    case 'negotiating': return 'bg-amber-950 border-amber-500 text-amber-200';
+    case 'success': return 'bg-emerald-950 border-emerald-500 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.5)]';
+    case 'error': return 'bg-red-950 border-red-500 text-red-200';
+    default: return 'bg-gray-800 border-gray-600';
+  }
 }
   
+
 function AgentIcon({ type }: { type: string }) {
     switch(type) {
       case 'buyer': return <Box className="w-6 h-6 text-blue-400" />;

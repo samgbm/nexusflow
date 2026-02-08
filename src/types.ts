@@ -15,12 +15,12 @@ export interface GeoLocation {
   lon: number;
 }
 
-interface AgentIdentity {
+export interface AgentIdentity {
   did: string; // Decentralized Identifier
   role: AgentRole;
 }
 
-interface AgentContext {
+export interface AgentContext {
   jurisdiction: string;
   currency?: string;
   location?: GeoLocation;
@@ -40,6 +40,9 @@ export interface AgentNode {
   label: string;
   status: 'idle' | 'working' | 'negotiating' | 'success' | 'error';
   facts: AgentFacts;
+  // Visual Coordinates (Increment 6)
+  x: number;
+  y: number;
 }
 
 export interface LogEntry {
